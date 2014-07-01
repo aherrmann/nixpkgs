@@ -3,6 +3,7 @@
 , fetchurl
 , zlib ? null
 , szip ? null
+, mpi ? null
 }:
 stdenv.mkDerivation rec {
   version = "1.8.13";
@@ -14,9 +15,13 @@ stdenv.mkDerivation rec {
 
   buildInputs = []
     ++ stdenv.lib.optional (zlib != null) zlib
-    ++ stdenv.lib.optional (szip != null) szip;
+    ++ stdenv.lib.optional (szip != null) szip
+    ++ stdenv.lib.optional (mpi != null) mpi;
 
-  configureFlags = if szip != null then "--with-szlib=${szip}" else "";
+  configureFlags = "
+    ${if szip != null then "--with-szlib=${szip}" else ""}
+    ${if mpi != null then "--enable-parallel" else ""}
+  ";
   
   patches = [./bin-mv.patch];
   

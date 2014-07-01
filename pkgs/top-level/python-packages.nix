@@ -110,6 +110,12 @@ rec {
     pylabQtSupport = false;
   });
 
+  mpi4py = import ../development/python-modules/mpi4py {
+    inherit (pkgs) stdenv fetchurl;
+    inherit python buildPythonPackage;
+    mpi = pkgs.openmpi;
+  };
+
   nixpart = callPackage ../tools/filesystems/nixpart { };
 
   # This is used for NixOps to make sure we won't break it with the next major

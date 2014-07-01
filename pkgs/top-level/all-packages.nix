@@ -1260,6 +1260,12 @@ let
 
   hdf5 = callPackage ../tools/misc/hdf5 {
     szip = null;
+    mpi = null;
+  };
+
+  hdf5-mpi = callPackage ../tools/misc/hdf5 {
+    szip = null;
+    mpi = openmpi;
   };
 
   heimdall = callPackage ../tools/misc/heimdall { };

@@ -89,6 +89,11 @@ rec {
     '';
   };
 
+  h5py = import ../development/python-modules/h5py {
+    inherit (pkgs) stdenv fetchurl hdf5;
+    inherit python buildPythonPackage cython numpy;
+  };
+
   ipython = import ../shells/ipython {
     inherit (pkgs) stdenv fetchurl sip pyqt4;
     inherit buildPythonPackage pythonPackages;

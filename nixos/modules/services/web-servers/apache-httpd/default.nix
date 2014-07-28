@@ -617,61 +617,67 @@ in
         date.timezone = "${config.time.timeZone}"
       '';
 
-    systemd.services.httpd =
-      { description = "Apache HTTPD";
+    systemd.services =
+      let
+        extraServices = foldl (o: svc: o // svc.extraSystemdServices) {} allSubservices;
+      in
+      extraServices //
+      { httpd =
+        { description = "Apache HTTPD";
 
-        wantedBy = [ "multi-user.target" ];
-        wants = [ "keys.target" ];
-        after = [ "network.target" "fs.target" "postgresql.service" "keys.target" ];
+          wantedBy = [ "multi-user.target" ];
+          wants = [ "keys.target" ];
+          after = [ "network.target" "fs.target" "postgresql.service" "keys.target" ];
 
-        path =
-          [ httpd pkgs.coreutils pkgs.gnugrep ]
-          ++ # Needed for PHP's mail() function.  !!! Probably the
-             # ssmtp module should export the path to sendmail in
-             # some way.
-             optional config.networking.defaultMailServer.directDelivery pkgs.ssmtp
-          ++ concatMap (svc: svc.extraServerPath) allSubservices;
+          path =
+            [ httpd pkgs.coreutils pkgs.gnugrep ]
+            ++ # Needed for PHP's mail() function.  !!! Probably the
+               # ssmtp module should export the path to sendmail in
+               # some way.
+               optional config.networking.defaultMailServer.directDelivery pkgs.ssmtp
+            ++ concatMap (svc: svc.extraServerPath) allSubservices;
 
-        environment =
-          optionalAttrs enablePHP { PHPRC = phpIni; }
-          // (listToAttrs (concatMap (svc: svc.globalEnvVars) allSubservices));
+          environment =
+            optionalAttrs enablePHP { PHPRC = phpIni; }
+            // (listToAttrs (concatMap (svc: svc.globalEnvVars) allSubservices));
 
-        preStart =
-          ''
-            mkdir -m 0750 -p ${mainCfg.stateDir}
-            [ $(id -u) != 0 ] || chown root.${mainCfg.group} ${mainCfg.stateDir}
-            ${optionalString version24 ''
-              mkdir -m 0750 -p "${mainCfg.stateDir}/runtime"
-              [ $(id -u) != 0 ] || chown root.${mainCfg.group} "${mainCfg.stateDir}/runtime"
-            ''}
-            mkdir -m 0700 -p ${mainCfg.logDir}
-
-            ${optionalString (mainCfg.documentRoot != null)
+          preStart =
             ''
-              # Create the document root directory if does not exists yet
-              mkdir -p ${mainCfg.documentRoot}
-            ''
-            }
+              mkdir -m 0750 -p ${mainCfg.stateDir}
+              [ $(id -u) != 0 ] || chown root.${mainCfg.group} ${mainCfg.stateDir}
+              ${optionalString version24 ''
+                mkdir -m 0750 -p "${mainCfg.stateDir}/runtime"
+                [ $(id -u) != 0 ] || chown root.${mainCfg.group} "${mainCfg.stateDir}/runtime"
+              ''}
+              mkdir -m 0700 -p ${mainCfg.logDir}
 
-            # Get rid of old semaphores.  These tend to accumulate across
-            # server restarts, eventually preventing it from restarting
-            # successfully.
-            for i in $(${pkgs.utillinux}/bin/ipcs -s | grep ' ${mainCfg.user} ' | cut -f2 -d ' '); do
-                ${pkgs.utillinux}/bin/ipcrm -s $i
-            done
+              ${optionalString (mainCfg.documentRoot != null)
+              ''
+                # Create the document root directory if does not exists yet
+                mkdir -p ${mainCfg.documentRoot}
+              ''
+              }
 
-            # Run the startup hooks for the subservices.
-            for i in ${toString (map (svn: svn.startupScript) allSubservices)}; do
-                echo Running Apache startup hook $i...
-                $i
-            done
-          '';
+              # Get rid of old semaphores.  These tend to accumulate across
+              # server restarts, eventually preventing it from restarting
+              # successfully.
+              for i in $(${pkgs.utillinux}/bin/ipcs -s | grep ' ${mainCfg.user} ' | cut -f2 -d ' '); do
+                  ${pkgs.utillinux}/bin/ipcrm -s $i
+              done
 
-        serviceConfig.ExecStart = "@${httpd}/bin/httpd httpd -f ${httpdConf}";
-        serviceConfig.ExecStop = "${httpd}/bin/httpd -f ${httpdConf} -k graceful-stop";
-        serviceConfig.Type = "forking";
-        serviceConfig.PIDFile = "${mainCfg.stateDir}/httpd.pid";
-        serviceConfig.Restart = "always";
+              # Run the startup hooks for the subservices.
+              for i in ${toString (map (svn: svn.startupScript) allSubservices)}; do
+                  echo Running Apache startup hook $i...
+                  $i
+              done
+            '';
+
+          serviceConfig.ExecStart = "@${httpd}/bin/httpd httpd -f ${httpdConf}";
+          serviceConfig.ExecStop = "${httpd}/bin/httpd -f ${httpdConf} -k graceful-stop";
+          serviceConfig.Type = "forking";
+          serviceConfig.PIDFile = "${mainCfg.stateDir}/httpd.pid";
+          serviceConfig.Restart = "always";
+        };
       };
 
   };

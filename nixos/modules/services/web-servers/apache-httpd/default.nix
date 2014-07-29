@@ -57,6 +57,7 @@ let
           extraModulesPre = [];
           extraPath = [];
           extraServerPath = [];
+          extraSystemdServices = {};
           globalEnvVars = [];
           robotsEntries = "";
           startupScript = "";

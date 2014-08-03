@@ -82,10 +82,17 @@ let
 
     grsecConfig =
       let boolToKernOpt = b: if b then "y" else "n";
+          inVirtualBox = 
+            if cfg.config.virtualisationConfig == "none" then false
+            else if cfg.config.virtualisationSoftware == "xen"    then false
+            else if cfg.config.virtualisationSoftware == "kvm"    then false
+            else if cfg.config.virtualisationSoftware == "vmware" then false
+            else                                                       true;
+
           # Disable RANDSTRUCT under virtualbox, as it has some kind of
           # breakage with the vbox guest drivers
-          #randstruct = optionalString config.services.virtualbox.enable
-          #  "GRKERNSEC_RANDSTRUCT n";
+          randstruct = optionalString inVirtualBox
+            "GRKERNSEC_RANDSTRUCT n";
 
           # Disable restricting links under the testing kernel, as something
           # has changed causing it to fail miserably during boot.
@@ -107,6 +114,7 @@ let
         GRKERNSEC_SYSCTL ${boolToKernOpt cfg.config.sysctl}
         GRKERNSEC_CHROOT_CHMOD ${boolToKernOpt cfg.config.denyChrootChmod}
         GRKERNSEC_NO_RBAC ${boolToKernOpt cfg.config.disableRBAC}
+        ${randstruct}
         ${restrictLinks}
 
         ${cfg.config.kernelExtraConfig}

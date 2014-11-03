@@ -11,7 +11,6 @@
 , enableExceptions ? false
 , taggedLayout ? ((enableRelease && enableDebug) || (enableSingleThreaded && enableMultiThreaded) || (enableShared && enableStatic))
 , mpi ? null
-, enableMPI ? false
 
 # Attributes inherit from specific versions
 , version, src
@@ -19,9 +18,6 @@
 
 # We must build at least one type of libraries
 assert !enableShared -> enableStatic;
-
-# Check for MPI library
-assert enableMPI -> mpi != null;
 
 with stdenv.lib;
 let
@@ -70,7 +66,7 @@ let
     "-sEXPAT_INCLUDE=${expat}/include"
     "-sEXPAT_LIBPATH=${expat}/lib"
   ] ++ optional (toolset != null) "toolset=${toolset}"
-    ++ optional enableMPI "--user-config=user-config.jam";
+    ++ optional (mpi != null) "--user-config=user-config.jam";
   nativeB2Args = concatStringsSep " " (genericB2Flags ++ nativeB2Flags);
 
   crossB2Flags = [
@@ -124,7 +120,7 @@ stdenv.mkDerivation {
 
   preConfigure = ''
     NIX_LDFLAGS="$(echo $NIX_LDFLAGS | sed "s,$out,$lib,g")"
-  '' + optionalString enableMPI ''
+  '' + optionalString (mpi != null) ''
     set -x
     cat << EOF > user-config.jam
     using mpi : ${mpi}/bin/mpiCC ;

@@ -1,4 +1,5 @@
 { stdenv, icu, expat, zlib, bzip2, python, fixDarwinDylibNames, makeSetupHook
+, callPackage, fetchurl
 , toolset ? null
 , enableRelease ? true
 , enableDebug ? false

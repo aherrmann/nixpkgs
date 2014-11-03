@@ -121,11 +121,9 @@ stdenv.mkDerivation {
   preConfigure = ''
     NIX_LDFLAGS="$(echo $NIX_LDFLAGS | sed "s,$out,$lib,g")"
   '' + optionalString (mpi != null) ''
-    set -x
     cat << EOF > user-config.jam
     using mpi : ${mpi}/bin/mpiCC ;
     EOF
-    set +x
   '';
 
   enableParallelBuilding = true;
